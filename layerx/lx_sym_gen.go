@@ -5245,6 +5245,16 @@ var symNames = map[Sym]string{
 	SymWidgetQueryTypeData:                             "widgetQueryTypeData",
 	SymWidgetQueryTypeSentTransaction:                  "widgetQueryTypeSentTransaction",
 	SymWidgetQueryTypeSignData:                         "widgetQueryTypeSignData",
+	SymPrivDeleteFolder:                                "folders.deleteFolder",
+	SymPrivForwardMessage:                              "messages.forwardMessage",
+	SymPrivGetAllChats:                                 "messages.getAllChats",
+	SymPrivGetStatsURL:                                 "messages.getStatsURL",
+	SymPrivGetWebViewResult:                            "messages.getWebViewResult",
+	SymPrivImportCard:                                  "contacts.importCard",
+	SymPrivReportReaction:                              "messages.reportReaction",
+	SymPrivRequestRecurringPayment:                     "payments.requestRecurringPayment",
+	SymPrivSendWebViewResultMessage:                    "messages.sendWebViewResultMessage",
+	SymPrivSetWebViewResult:                            "messages.setWebViewResult",
 }
 
 // SymName returns TL name.

@@ -2,7 +2,6 @@ package layerx
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/gotd/td/bin"
@@ -28,6 +27,8 @@ type OddView struct {
 	Ctor  uint32
 	Sym   Sym
 	Known bool
+	Priv  bool
+	Name  string
 }
 
 // Table routes calls by sym.
@@ -141,7 +142,12 @@ func (t *Table) admit(l Layer, body *bin.Buffer, o Opts, check bool) (*Taken, er
 	}
 	s, ok := t.symOf(eff, id)
 	if !ok {
-		return nil, t.odd(OddView{Layer: eff, Ctor: id})
+		o := OddView{Layer: eff, Ctor: id}
+		if n, ok := PrivSkip(id); ok {
+			o.Priv = true
+			o.Name = n
+		}
+		return nil, t.odd(o)
 	}
 	if !t.Has(s) {
 		return nil, t.odd(OddView{Layer: eff, Ctor: id, Sym: s, Known: true})
@@ -207,7 +213,8 @@ func (t *Table) unwrap(body *bin.Buffer, l Layer) (Layer, []Wrap, bool, error) {
 		}
 		s, ok := t.symOf(l, id)
 		if !ok {
-			return eff, wraps, fixed, fmt.Errorf("%w: id %08x", ErrNoPlan, id)
+			// Unknown terminal, handled by admit.
+			return eff, wraps, fixed, nil
 		}
 		w := wrapOf(s)
 		if w < 0 {

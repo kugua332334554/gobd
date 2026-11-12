@@ -41,6 +41,7 @@ func main() {
 
 	layersMeta := flag.String("layers-meta", "", "Path to layers meta.json")
 	layersDecide := flag.String("layers-decide", "", "Path to layers decide.json")
+	layersPriv := flag.String("layers-priv", "", "Path to layers priv.json")
 	layersTarget := flag.String("layers-target", "", "Path to layer package dir")
 	layersPackage := flag.String("layers-package", "layerx", "Layer package name")
 	layersAudit := flag.String("layers-audit", "", "Path to audit json")
@@ -120,7 +121,7 @@ func main() {
 			panic("no layers target")
 		}
 		start = time.Now()
-		u, err := gen.LoadUni(*layersMeta, *layersDecide)
+		u, err := gen.LoadUni(*layersMeta, *layersDecide, *layersPriv)
 		if err != nil {
 			panic(fmt.Sprintf("%+v", err))
 		}

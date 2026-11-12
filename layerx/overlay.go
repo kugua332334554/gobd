@@ -54,5 +54,8 @@ func (t *Table) symOf(l Layer, id uint32) (Sym, bool) {
 	if s, ok := SymOf(l, id); ok {
 		return s, true
 	}
+	if s, ok := PrivSym(id); ok {
+		return s, true
+	}
 	return t.overlay().Sym(id)
 }

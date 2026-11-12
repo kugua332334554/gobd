@@ -18,6 +18,9 @@ var (
 
 // putAt writes id and body.
 func putAt(b *bin.Buffer, l Layer, s Sym, v bin.Object) error {
+	if IsPriv(s) {
+		return putPriv(b, l, s, v)
+	}
 	switch l {
 	case L228:
 		switch s {
@@ -7000,6 +7003,9 @@ func putAt(b *bin.Buffer, l Layer, s Sym, v bin.Object) error {
 
 // getAt decodes body by sym.
 func getAt(b *bin.Buffer, l Layer, s Sym) (bin.Object, error) {
+	if IsPriv(s) {
+		return getPriv(b, l, s)
+	}
 	switch l {
 	case L228:
 		switch s {
