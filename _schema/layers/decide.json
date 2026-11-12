@@ -1,0 +1,45 @@
+{
+  "ver": 1,
+  "items": [
+    {
+      "key": "l228:replyInlineMarkup",
+      "do": "skip"
+    },
+    {
+      "key": "l228:botVerification",
+      "do": "hook",
+      "field": "description",
+      "conv": "TextStr"
+    },
+    {
+      "key": "l229:botVerification",
+      "do": "hook",
+      "field": "description",
+      "conv": "TextStr"
+    },
+    {
+      "key": "l228:botVerifierSettings",
+      "do": "hook",
+      "field": "custom_description",
+      "conv": "TextStr"
+    },
+    {
+      "key": "l229:botVerifierSettings",
+      "do": "hook",
+      "field": "custom_description",
+      "conv": "TextStr"
+    },
+    {
+      "key": "l228:bots.setCustomVerification",
+      "do": "hook",
+      "field": "custom_description",
+      "conv": "TextStr"
+    },
+    {
+      "key": "l229:bots.setCustomVerification",
+      "do": "hook",
+      "field": "custom_description",
+      "conv": "TextStr"
+    }
+  ]
+}

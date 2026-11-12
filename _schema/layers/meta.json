@@ -1,0 +1,62 @@
+{
+  "canon": 233,
+  "canonFile": "../telegram.tl",
+  "legacy": "../legacy.tl",
+  "srcPath": "Telegram/SourceFiles/mtproto/scheme/api.tl",
+  "layers": [
+    {
+      "n": 228,
+      "file": "l228.tl",
+      "repo": "telegramdesktop/tdesktop",
+      "ref": "138b937f01a275000fb2e06b3d5b864f5b78cc81",
+      "date": "2026-07-10",
+      "sha": "bbddd9c4c3f5ff16fd4abbf39f2a864fdac7553e9f05b6bf9ead2aeb9c8eb566",
+      "bytes": 278916
+    },
+    {
+      "n": 229,
+      "file": "l229.tl",
+      "repo": "telegramdesktop/tdesktop",
+      "ref": "11d18d829b25d583f2e3058663b522a528fde51a",
+      "date": "2026-08-22",
+      "sha": "7655504c25a5d3a368e7729d3e9e64afffcacbcb54ec85508c60f0472064b617",
+      "bytes": 281257
+    },
+    {
+      "n": 230,
+      "file": "l230.tl",
+      "repo": "telegramdesktop/tdesktop",
+      "ref": "d36272b193057a114ef3a9fe7f15a8f8b587c489",
+      "date": "2026-10-08",
+      "sha": "3bc699f8b5d31262609720c0a6e88291d953ae12bb5132484db57207c72c25fd",
+      "bytes": 291277
+    },
+    {
+      "n": 231,
+      "file": "l231.tl",
+      "repo": "telegramdesktop/tdesktop",
+      "ref": "91ed9dbf2004ed5531a94ecc4fe5751e008dc8ed",
+      "date": "2026-10-17",
+      "sha": "0921a7bba8be9ad7e615d1d4f8e068126a421e3cba18f499a16765f1ab6129bf",
+      "bytes": 291562
+    },
+    {
+      "n": 232,
+      "file": "l232.tl",
+      "repo": "telegramdesktop/tdesktop",
+      "ref": "850fb90eb6db96c124b6da1349060f9ed00f4fe4",
+      "date": "2026-10-20",
+      "sha": "76922ce265441d3f2f5188f56b69b41e1cb11354657ea547707507f8c3b93826",
+      "bytes": 294194
+    },
+    {
+      "n": 233,
+      "file": "l233.tl",
+      "repo": "telegramdesktop/tdesktop",
+      "ref": "a6df181ac41763a9ff9edae264dad407fb1c35ec",
+      "date": "2026-11-05",
+      "sha": "c2bbefcaec3285ba46c8af8f429c7012fe5aea253fd16d4be089f91c7c3fa71e",
+      "bytes": 298317
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "canon": 233,
+  "units": 338,
+  "bytes": 2968021,
+  "lines": 132715,
+  "layers": [
+    {
+      "n": 228,
+      "count": {
+        "body": 30,
+        "none": 176,
+        "relay": 286,
+        "same": 2126
+      },
+      "units": 316
+    },
+    {
+      "n": 229,
+      "count": {
+        "body": 16,
+        "none": 136,
+        "relay": 260,
+        "same": 2206
+      },
+      "units": 276
+    },
+    {
+      "n": 230,
+      "count": {
+        "body": 11,
+        "none": 52,
+        "relay": 260,
+        "same": 2295
+      },
+      "units": 271
+    },
+    {
+      "n": 231,
+      "count": {
+        "body": 9,
+        "none": 51,
+        "relay": 261,
+        "same": 2297
+      },
+      "units": 270
+    },
+    {
+      "n": 232,
+      "count": {
+        "body": 3,
+        "none": 27,
+        "relay": 256,
+        "same": 2332
+      },
+      "units": 259
+    },
+    {
+      "n": 233,
+      "count": {
+        "same": 2618
+      },
+      "units": 0
+    }
+  ]
+}

@@ -7,3 +7,5 @@ package td
 //go:generate go run github.com/gotd/td/cmd/gotdgen --clean --client=false --package tgtrace --target tgtrace --schema _schema/trace.tl
 
 //go:generate go run github.com/gotd/td/cmd/gotdgen --clean --package mt --target mt --client=false --schema _schema/mt.tl
+
+//go:generate go run github.com/gotd/td/cmd/gotdgen --schema _schema/telegram.tl --layers-meta _schema/layers/meta.json --layers-decide _schema/layers/decide.json --layers-target layerx --layers-package layerx --layers-audit _schema/layers/audit.json --layers-only
