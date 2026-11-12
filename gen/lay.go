@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/go-faster/errors"
 
@@ -235,6 +236,22 @@ func (u *Uni) LayerDef(n Layer, key string) (*tl.Definition, bool) {
 	}
 	out := d.Def
 	return &out, true
+}
+
+// ClassGoName returns canonical Go type for a TL type.
+func (u *Uni) ClassGoName(tlName string) (string, bool) {
+	members := u.CanIdx.Members(tlName)
+	if len(members) == 0 {
+		return "", false
+	}
+	if len(members) == 1 {
+		d := members[0].Def
+		return namespacedName(d.Name, d.Namespace), false
+	}
+	parts := strings.Split(tlName, ".")
+	name := parts[len(parts)-1]
+	ns := parts[:len(parts)-1]
+	return namespacedName(name, ns) + "Class", true
 }
 
 // LayerKeys returns sorted layer keys.

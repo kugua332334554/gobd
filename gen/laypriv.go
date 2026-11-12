@@ -16,6 +16,8 @@ type PrivItem struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Go   string `json:"go,omitempty"`
+	Sym  string `json:"sym,omitempty"`
+	Gen  bool   `json:"gen,omitempty"`
 	Skip string `json:"skip,omitempty"`
 }
 
@@ -54,7 +56,7 @@ func LoadPriv(path string) (*PrivTab, error) {
 			return nil, fmt.Errorf("priv %s: bad id", it.Name)
 		}
 		p.byID[uint32(id)] = it
-		if it.Go != "" {
+		if it.Go != "" || it.Sym != "" {
 			p.named = append(p.named, it)
 		}
 	}
@@ -77,10 +79,52 @@ func (p *PrivTab) GoType(id uint32) (string, bool) {
 	return it.Go, true
 }
 
+// SymKey returns canonical key.
+func (p *PrivTab) SymKey(id uint32) (string, bool) {
+	it, ok := p.byID[id]
+	if !ok || it.Sym == "" {
+		return "", false
+	}
+	return it.Sym, true
+}
+
 // Named returns decodable items.
 func (p *PrivTab) Named() []PrivItem { return p.named }
 
-// Assign picks free syms for decodable items.
+// Custom returns items with hand-written types.
+func (p *PrivTab) Custom() []PrivItem {
+	var out []PrivItem
+	for _, it := range p.named {
+		if it.Go != "" {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// Mapped returns items mapped to canonical keys.
+func (p *PrivTab) Mapped() []PrivItem {
+	var out []PrivItem
+	for _, it := range p.named {
+		if it.Sym != "" {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// GenItems returns generated types.
+func (p *PrivTab) GenItems() []PrivItem {
+	var out []PrivItem
+	for _, it := range p.named {
+		if it.Gen {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// Assign picks free syms for custom items.
 func (p *PrivTab) Assign(used map[Sym]bool) map[string]Sym {
 	if p.sym != nil {
 		return p.syms()
@@ -88,6 +132,9 @@ func (p *PrivTab) Assign(used map[Sym]bool) map[string]Sym {
 	p.sym = map[uint32]uint32{}
 	next := uint32(0xffffffff)
 	for _, it := range p.named {
+		if it.Go == "" {
+			continue
+		}
 		for used[Sym(next)] {
 			next--
 		}
@@ -102,6 +149,9 @@ func (p *PrivTab) Assign(used map[Sym]bool) map[string]Sym {
 func (p *PrivTab) syms() map[string]Sym {
 	out := map[string]Sym{}
 	for _, it := range p.named {
+		if it.Go == "" {
+			continue
+		}
 		id, _ := strconv.ParseUint(it.ID, 16, 32)
 		out[it.Go] = Sym(p.sym[uint32(id)])
 	}
@@ -133,21 +183,25 @@ func (l *LayGen) privFile(pkg string) []byte {
 		used[Sym(l.U.CanIdx.byKey[k].Def.ID)] = true
 	}
 	syms := p.Assign(used)
+	custom := p.Custom()
 	f.p("// private syms\n")
 	f.p("const (\n")
-	for _, it := range p.Named() {
+	for _, it := range custom {
 		f.p("\t%s Sym = 0x%08x\n", SymConstPriv(it.Go), uint32(syms[it.Go]))
 	}
 	f.p(")\n\n")
 	f.p("// privByID maps client ids.\n")
 	f.p("var privByID = map[uint32]Sym{\n")
-	for _, it := range p.Named() {
+	for _, it := range custom {
 		f.p("\t0x%s: %s,\n", it.ID, SymConstPriv(it.Go))
+	}
+	for _, it := range p.Mapped() {
+		f.p("\t0x%s: %s,\n", it.ID, l.SymConst(it.Sym))
 	}
 	f.p("}\n\n")
 	f.p("// privName maps sym to TL name.\n")
 	f.p("var privName = map[Sym]string{\n")
-	for _, it := range p.Named() {
+	for _, it := range custom {
 		f.p("\t%s: %q,\n", SymConstPriv(it.Go), it.Name)
 	}
 	f.p("}\n\n")
@@ -162,7 +216,7 @@ func (l *LayGen) privFile(pkg string) []byte {
 	f.p("}\n\n")
 	f.p("// privID maps sym to client id.\n")
 	f.p("var privID = map[Sym]uint32{\n")
-	for _, it := range p.Named() {
+	for _, it := range custom {
 		f.p("\t%s: 0x%s,\n", SymConstPriv(it.Go), it.ID)
 	}
 	f.p("}\n\n")
@@ -177,7 +231,7 @@ func (l *LayGen) privFile(pkg string) []byte {
 	f.p("// putPriv encodes private request.\n")
 	f.p("func putPriv(b *bin.Buffer, l Layer, s Sym, v bin.Object) error {\n")
 	f.p("\tswitch s {\n")
-	for _, it := range p.Named() {
+	for _, it := range custom {
 		f.p("\tcase %s:\n", SymConstPriv(it.Go))
 		f.p("\t\tx, ok := v.(*%s)\n", it.Go)
 		f.p("\t\tif !ok {\n\t\t\treturn ErrMismatch\n\t\t}\n")
@@ -188,7 +242,7 @@ func (l *LayGen) privFile(pkg string) []byte {
 	f.p("// getPriv decodes private request.\n")
 	f.p("func getPriv(b *bin.Buffer, l Layer, s Sym) (bin.Object, error) {\n")
 	f.p("\tswitch s {\n")
-	for _, it := range p.Named() {
+	for _, it := range custom {
 		f.p("\tcase %s:\n", SymConstPriv(it.Go))
 		f.p("\t\tv := new(%s)\n", it.Go)
 		f.p("\t\tif err := v.decodePriv(b, l); err != nil {\n\t\t\treturn nil, err\n\t\t}\n")

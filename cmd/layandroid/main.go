@@ -132,6 +132,7 @@ func main() {
 	out := flag.String("out", "", "write priv.json")
 	java := flag.String("java", "", "java tgnet source dir")
 	tlOut := flag.String("tl", "", "write priv.tl")
+	goOut := flag.String("go", "", "write priv_gen.go")
 	privFile := flag.String("priv", "_schema/layers/priv.json", "priv.json")
 	limit := flag.Int("limit", 12, "list lines")
 	flag.Parse()
@@ -141,7 +142,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		if err := extractTL(u, *java, *src, *privFile, *tlOut); err != nil {
+		if err := extractTL(u, *java, *src, *privFile, *tlOut, *goOut); err != nil {
 			panic(err)
 		}
 		return

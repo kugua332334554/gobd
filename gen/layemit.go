@@ -250,7 +250,7 @@ func (l *LayGen) symFile(pkg string) []byte {
 	for _, key := range l.syms {
 		f.p("\t%s: %q,\n", l.SymConst(key), key)
 	}
-	for _, it := range l.U.Priv.Named() {
+	for _, it := range l.U.Priv.Custom() {
 		f.p("\t%s: %q,\n", SymConstPriv(it.Go), it.Name)
 	}
 	f.p("}\n\n")

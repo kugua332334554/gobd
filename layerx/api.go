@@ -58,7 +58,9 @@ func getObj(b *bin.Buffer, l Layer) (bin.Object, error) {
 	}
 	s, ok := SymOf(l, id)
 	if !ok {
-		return nil, fmt.Errorf("%w: id %08x layer %d", ErrNoPlan, id, l)
+		if s, ok = PrivSym(id); !ok {
+			return nil, fmt.Errorf("%w: id %08x layer %d", ErrNoPlan, id, l)
+		}
 	}
 	return getAt(b, l, s)
 }

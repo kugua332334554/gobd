@@ -8,21 +8,63 @@ import (
 
 // private syms
 const (
-	SymPrivDeleteFolder             Sym = 0xffffffff
-	SymPrivForwardMessage           Sym = 0xfffffffe
-	SymPrivGetAllChats              Sym = 0xfffffffd
-	SymPrivGetStatsURL              Sym = 0xfffffffc
-	SymPrivGetWebViewResult         Sym = 0xfffffffb
-	SymPrivImportCard               Sym = 0xfffffffa
-	SymPrivReportReaction           Sym = 0xfffffff9
-	SymPrivRequestRecurringPayment  Sym = 0xfffffff8
-	SymPrivSendWebViewResultMessage Sym = 0xfffffff7
-	SymPrivSetWebViewResult         Sym = 0xfffffff6
-	SymPrivWebViewResult            Sym = 0xfffffff5
+	SymPrivAliasChannelGetMessages  Sym = 0xffffffff
+	SymPrivAliasContactsSearch      Sym = 0xfffffffe
+	SymPrivAliasCreateChat          Sym = 0xfffffffd
+	SymPrivAliasCreateTheme         Sym = 0xfffffffc
+	SymPrivAliasEditChatCreator     Sym = 0xfffffffb
+	SymPrivAliasExportBotToken      Sym = 0xfffffffa
+	SymPrivAliasForwardMessages     Sym = 0xfffffff9
+	SymPrivAliasGetDifference       Sym = 0xfffffff8
+	SymPrivAliasGetLangPack         Sym = 0xfffffff7
+	SymPrivAliasGetLanguages        Sym = 0xfffffff6
+	SymPrivAliasGetMessages         Sym = 0xfffffff5
+	SymPrivAliasGetStrings          Sym = 0xfffffff4
+	SymPrivAliasGetTheme            Sym = 0xfffffff3
+	SymPrivAliasImportChatInvite    Sym = 0xfffffff2
+	SymPrivAliasInstallTheme        Sym = 0xfffffff1
+	SymPrivAliasInviteToChannel     Sym = 0xfffffff0
+	SymPrivAliasJoinChannel         Sym = 0xffffffef
+	SymPrivAliasRegisterDevice      Sym = 0xffffffee
+	SymPrivAliasSignUp              Sym = 0xffffffed
+	SymPrivAliasUpdateTheme         Sym = 0xffffffec
+	SymPrivAliasUploadMedia         Sym = 0xffffffeb
+	SymPrivDeleteFolder             Sym = 0xffffffea
+	SymPrivForwardMessage           Sym = 0xffffffe9
+	SymPrivGetAllChats              Sym = 0xffffffe8
+	SymPrivGetStatsURL              Sym = 0xffffffe7
+	SymPrivGetWebViewResult         Sym = 0xffffffe6
+	SymPrivImportCard               Sym = 0xffffffe5
+	SymPrivReportReaction           Sym = 0xffffffe4
+	SymPrivRequestRecurringPayment  Sym = 0xffffffe3
+	SymPrivSendWebViewResultMessage Sym = 0xffffffe2
+	SymPrivSetWebViewResult         Sym = 0xffffffe1
+	SymPrivWebViewResult            Sym = 0xffffffe0
 )
 
 // privByID maps client ids.
 var privByID = map[uint32]Sym{
+	0x93d7b347: SymPrivAliasChannelGetMessages,
+	0x11f812d8: SymPrivAliasContactsSearch,
+	0x0034a818: SymPrivAliasCreateChat,
+	0x8432c21f: SymPrivAliasCreateTheme,
+	0x8f38cd1f: SymPrivAliasEditChatCreator,
+	0x0063b089: SymPrivAliasExportBotToken,
+	0x41d41ade: SymPrivAliasForwardMessages,
+	0x25939651: SymPrivAliasGetDifference,
+	0x9ab5c58e: SymPrivAliasGetLangPack,
+	0x800fd57d: SymPrivAliasGetLanguages,
+	0x4222fa74: SymPrivAliasGetMessages,
+	0x2e1ee318: SymPrivAliasGetStrings,
+	0x8d9d742b: SymPrivAliasGetTheme,
+	0x6c50051c: SymPrivAliasImportChatInvite,
+	0x7ae43737: SymPrivAliasInstallTheme,
+	0x199f3a6c: SymPrivAliasInviteToChannel,
+	0x24b524c5: SymPrivAliasJoinChannel,
+	0x637ea878: SymPrivAliasRegisterDevice,
+	0x80eee427: SymPrivAliasSignUp,
+	0x5cb367d5: SymPrivAliasUpdateTheme,
+	0x519bc2b1: SymPrivAliasUploadMedia,
 	0x1c295881: SymPrivDeleteFolder,
 	0x33963bf9: SymPrivForwardMessage,
 	0x875f74be: SymPrivGetAllChats,
@@ -38,6 +80,27 @@ var privByID = map[uint32]Sym{
 
 // privName maps sym to TL name.
 var privName = map[Sym]string{
+	SymPrivAliasChannelGetMessages:  "channels.getMessages",
+	SymPrivAliasContactsSearch:      "contacts.search",
+	SymPrivAliasCreateChat:          "messages.createChat",
+	SymPrivAliasCreateTheme:         "account.createTheme",
+	SymPrivAliasEditChatCreator:     "messages.editChatCreator",
+	SymPrivAliasExportBotToken:      "bots.exportBotToken",
+	SymPrivAliasForwardMessages:     "messages.forwardMessages",
+	SymPrivAliasGetDifference:       "updates.getDifference",
+	SymPrivAliasGetLangPack:         "langpack.getLangPack",
+	SymPrivAliasGetLanguages:        "langpack.getLanguages",
+	SymPrivAliasGetMessages:         "messages.getMessages",
+	SymPrivAliasGetStrings:          "langpack.getStrings",
+	SymPrivAliasGetTheme:            "account.getTheme",
+	SymPrivAliasImportChatInvite:    "messages.importChatInvite",
+	SymPrivAliasInstallTheme:        "account.installTheme",
+	SymPrivAliasInviteToChannel:     "channels.inviteToChannel",
+	SymPrivAliasJoinChannel:         "channels.joinChannel",
+	SymPrivAliasRegisterDevice:      "account.registerDevice",
+	SymPrivAliasSignUp:              "auth.signUp",
+	SymPrivAliasUpdateTheme:         "account.updateTheme",
+	SymPrivAliasUploadMedia:         "messages.uploadMedia",
 	SymPrivDeleteFolder:             "folders.deleteFolder",
 	SymPrivForwardMessage:           "messages.forwardMessage",
 	SymPrivGetAllChats:              "messages.getAllChats",
@@ -89,7 +152,6 @@ var privSkip = map[uint32]string{
 	0x55555553: "videoEncrypted",
 	0xf04f91ec: "wallPaper_layer94",
 	0xd41a5167: "webPageUrlPending",
-	0x0063b089: "bots.exportBotToken",
 	0x389bb419: "savedStarGift_layer221_2",
 	0x3a0893b8: "starGiftUnique_layer215",
 	0xd073f1e6: "starsSubscription_old",
@@ -103,6 +165,27 @@ var privSkip = map[uint32]string{
 
 // privID maps sym to client id.
 var privID = map[Sym]uint32{
+	SymPrivAliasChannelGetMessages:  0x93d7b347,
+	SymPrivAliasContactsSearch:      0x11f812d8,
+	SymPrivAliasCreateChat:          0x0034a818,
+	SymPrivAliasCreateTheme:         0x8432c21f,
+	SymPrivAliasEditChatCreator:     0x8f38cd1f,
+	SymPrivAliasExportBotToken:      0x0063b089,
+	SymPrivAliasForwardMessages:     0x41d41ade,
+	SymPrivAliasGetDifference:       0x25939651,
+	SymPrivAliasGetLangPack:         0x9ab5c58e,
+	SymPrivAliasGetLanguages:        0x800fd57d,
+	SymPrivAliasGetMessages:         0x4222fa74,
+	SymPrivAliasGetStrings:          0x2e1ee318,
+	SymPrivAliasGetTheme:            0x8d9d742b,
+	SymPrivAliasImportChatInvite:    0x6c50051c,
+	SymPrivAliasInstallTheme:        0x7ae43737,
+	SymPrivAliasInviteToChannel:     0x199f3a6c,
+	SymPrivAliasJoinChannel:         0x24b524c5,
+	SymPrivAliasRegisterDevice:      0x637ea878,
+	SymPrivAliasSignUp:              0x80eee427,
+	SymPrivAliasUpdateTheme:         0x5cb367d5,
+	SymPrivAliasUploadMedia:         0x519bc2b1,
 	SymPrivDeleteFolder:             0x1c295881,
 	SymPrivForwardMessage:           0x33963bf9,
 	SymPrivGetAllChats:              0x875f74be,
@@ -140,6 +223,153 @@ func PrivSkip(id uint32) (string, bool) {
 // putPriv encodes private request.
 func putPriv(b *bin.Buffer, l Layer, s Sym, v bin.Object) error {
 	switch s {
+	case SymPrivAliasChannelGetMessages:
+		x, ok := v.(*PrivAliasChannelGetMessages)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasContactsSearch:
+		x, ok := v.(*PrivAliasContactsSearch)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasCreateChat:
+		x, ok := v.(*PrivAliasCreateChat)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasCreateTheme:
+		x, ok := v.(*PrivAliasCreateTheme)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasEditChatCreator:
+		x, ok := v.(*PrivAliasEditChatCreator)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasExportBotToken:
+		x, ok := v.(*PrivAliasExportBotToken)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasForwardMessages:
+		x, ok := v.(*PrivAliasForwardMessages)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasGetDifference:
+		x, ok := v.(*PrivAliasGetDifference)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasGetLangPack:
+		x, ok := v.(*PrivAliasGetLangPack)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasGetLanguages:
+		x, ok := v.(*PrivAliasGetLanguages)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasGetMessages:
+		x, ok := v.(*PrivAliasGetMessages)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasGetStrings:
+		x, ok := v.(*PrivAliasGetStrings)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasGetTheme:
+		x, ok := v.(*PrivAliasGetTheme)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasImportChatInvite:
+		x, ok := v.(*PrivAliasImportChatInvite)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasInstallTheme:
+		x, ok := v.(*PrivAliasInstallTheme)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasInviteToChannel:
+		x, ok := v.(*PrivAliasInviteToChannel)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasJoinChannel:
+		x, ok := v.(*PrivAliasJoinChannel)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasRegisterDevice:
+		x, ok := v.(*PrivAliasRegisterDevice)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasSignUp:
+		x, ok := v.(*PrivAliasSignUp)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasUpdateTheme:
+		x, ok := v.(*PrivAliasUpdateTheme)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
+	case SymPrivAliasUploadMedia:
+		x, ok := v.(*PrivAliasUploadMedia)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
 	case SymPrivDeleteFolder:
 		x, ok := v.(*PrivDeleteFolder)
 		if !ok {
@@ -224,6 +454,132 @@ func putPriv(b *bin.Buffer, l Layer, s Sym, v bin.Object) error {
 // getPriv decodes private request.
 func getPriv(b *bin.Buffer, l Layer, s Sym) (bin.Object, error) {
 	switch s {
+	case SymPrivAliasChannelGetMessages:
+		v := new(PrivAliasChannelGetMessages)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasContactsSearch:
+		v := new(PrivAliasContactsSearch)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasCreateChat:
+		v := new(PrivAliasCreateChat)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasCreateTheme:
+		v := new(PrivAliasCreateTheme)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasEditChatCreator:
+		v := new(PrivAliasEditChatCreator)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasExportBotToken:
+		v := new(PrivAliasExportBotToken)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasForwardMessages:
+		v := new(PrivAliasForwardMessages)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasGetDifference:
+		v := new(PrivAliasGetDifference)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasGetLangPack:
+		v := new(PrivAliasGetLangPack)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasGetLanguages:
+		v := new(PrivAliasGetLanguages)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasGetMessages:
+		v := new(PrivAliasGetMessages)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasGetStrings:
+		v := new(PrivAliasGetStrings)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasGetTheme:
+		v := new(PrivAliasGetTheme)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasImportChatInvite:
+		v := new(PrivAliasImportChatInvite)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasInstallTheme:
+		v := new(PrivAliasInstallTheme)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasInviteToChannel:
+		v := new(PrivAliasInviteToChannel)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasJoinChannel:
+		v := new(PrivAliasJoinChannel)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasRegisterDevice:
+		v := new(PrivAliasRegisterDevice)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasSignUp:
+		v := new(PrivAliasSignUp)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasUpdateTheme:
+		v := new(PrivAliasUpdateTheme)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivAliasUploadMedia:
+		v := new(PrivAliasUploadMedia)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
 	case SymPrivDeleteFolder:
 		v := new(PrivDeleteFolder)
 		if err := v.decodePriv(b, l); err != nil {
