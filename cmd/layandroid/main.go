@@ -130,10 +130,24 @@ func main() {
 	meta := flag.String("meta", "_schema/layers/meta.json", "layers meta")
 	decide := flag.String("decide", "_schema/layers/decide.json", "decisions")
 	out := flag.String("out", "", "write priv.json")
+	java := flag.String("java", "", "java tgnet source dir")
+	tlOut := flag.String("tl", "", "write priv.tl")
+	privFile := flag.String("priv", "_schema/layers/priv.json", "priv.json")
 	limit := flag.Int("limit", 12, "list lines")
 	flag.Parse()
 
-	u, err := gen.LoadUni(*meta, *decide)
+	if *java != "" && *tlOut != "" {
+		u, err := gen.LoadUni(*meta, *decide, *privFile)
+		if err != nil {
+			panic(err)
+		}
+		if err := extractTL(u, *java, *src, *privFile, *tlOut); err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	u, err := gen.LoadUni(*meta, *decide, *privFile)
 	if err != nil {
 		panic(err)
 	}
