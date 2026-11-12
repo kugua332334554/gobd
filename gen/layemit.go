@@ -157,6 +157,7 @@ func (l *LayGen) Write(fs FileSystem, pkg string) error {
 		{"lx_scan_gen.go", func() []byte { return l.scanFile(pkg) }},
 		{"lx_wrap_gen.go", func() []byte { return l.wrapFile(pkg) }},
 		{"lx_res_gen.go", func() []byte { return l.resFile(pkg) }},
+		{"lx_priv_gen.go", func() []byte { return l.privFile(pkg) }},
 	}
 	for _, f := range files {
 		data := f.fn()
@@ -248,6 +249,9 @@ func (l *LayGen) symFile(pkg string) []byte {
 	f.p("var symNames = map[Sym]string{\n")
 	for _, key := range l.syms {
 		f.p("\t%s: %q,\n", l.SymConst(key), key)
+	}
+	for _, it := range l.U.Priv.Named() {
+		f.p("\t%s: %q,\n", SymConstPriv(it.Go), it.Name)
 	}
 	f.p("}\n\n")
 	f.p("// SymName returns TL name.\n")
@@ -366,6 +370,7 @@ func (l *LayGen) planFile(pkg string) []byte {
 	)+"\nvar (\n\t_ = fmt.Stringer(nil)\n\t_ = bin.Buffer{}\n\t_ = tg.User{}\n)\n")
 	f.p("// putAt writes id and body.\n")
 	f.p("func putAt(b *bin.Buffer, l Layer, s Sym, v bin.Object) error {\n")
+	f.p("\tif IsPriv(s) {\n\t\treturn putPriv(b, l, s, v)\n\t}\n")
 	f.p("\tswitch l {\n")
 	for _, spec := range l.U.Layers {
 		units := l.unitsOf(spec.Meta.N)
@@ -388,6 +393,7 @@ func (l *LayGen) planFile(pkg string) []byte {
 
 	f.p("// getAt decodes body by sym.\n")
 	f.p("func getAt(b *bin.Buffer, l Layer, s Sym) (bin.Object, error) {\n")
+	f.p("\tif IsPriv(s) {\n\t\treturn getPriv(b, l, s)\n\t}\n")
 	f.p("\tswitch l {\n")
 	for _, spec := range l.U.Layers {
 		units := l.unitsOf(spec.Meta.N)

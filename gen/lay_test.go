@@ -11,6 +11,7 @@ func loadTestUni(t *testing.T) *Uni {
 	u, err := LoadUni(
 		filepath.Join("..", "_schema", "layers", "meta.json"),
 		filepath.Join("..", "_schema", "layers", "decide.json"),
+		filepath.Join("..", "_schema", "layers", "priv.json"),
 	)
 	if err != nil {
 		t.Fatal(err)

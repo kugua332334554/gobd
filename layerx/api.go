@@ -40,6 +40,9 @@ func putObj(b *bin.Buffer, l Layer, v bin.Object) error {
 	if !ok {
 		return ErrNoPlan
 	}
+	if s, ok := PrivSym(t.TypeID()); ok {
+		return putAt(b, l, s, v)
+	}
 	s := Sym(t.TypeID())
 	if !SymValid(s) {
 		return fmt.Errorf("%w: id %08x", ErrNoPlan, uint32(t.TypeID()))

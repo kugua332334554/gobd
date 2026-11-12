@@ -21,6 +21,8 @@ type auditFile struct {
 	Units  int          `json:"units"`
 	Bytes  int          `json:"bytes"`
 	Lines  int          `json:"lines"`
+	Priv   int          `json:"priv"`
+	PrivDC int          `json:"privDecodable"`
 	Layers []layerAudit `json:"layers"`
 }
 
@@ -28,7 +30,14 @@ type auditFile struct {
 func (l *LayGen) WriteAudit(path string) error {
 	l.buildUnits()
 	nBytes, nLines := l.Stat()
-	doc := auditFile{Canon: l.U.Canon, Units: len(l.custom), Bytes: nBytes, Lines: nLines}
+	doc := auditFile{
+		Canon:  l.U.Canon,
+		Units:  len(l.custom),
+		Bytes:  nBytes,
+		Lines:  nLines,
+		Priv:   len(l.U.Priv.Items),
+		PrivDC: len(l.U.Priv.Named()),
+	}
 	for _, spec := range l.U.Layers {
 		r := l.reports[spec.Meta.N]
 		c := map[string]int{}

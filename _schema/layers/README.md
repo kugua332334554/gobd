@@ -67,6 +67,21 @@ ctor id 无重复、`Sym` 无碰撞；生成结果写入 `audit.json`。
 | `lx_wrap_gen.go` | 信封解析 |
 | `lx_res_gen.go` | 方法结果类校验 |
 
+## 私有 RPC
+
+`priv.json` 登记 DrKLO 客户端 `not_linked_classes.txt` 里不在官方 schema 的 ctor：
+
+| 字段 | 含义 |
+|---|---|
+| `id` | 客户端 ctor id |
+| `name` | TL 名 |
+| `go` | 可解码的请求类型（`layerx/priv.go` 手写） |
+| `skip` | 只登记不解析的原因 |
+
+有 `go` 的条目会生成 `SymPriv*`，可正常 `Add` handler 并用 `Mark.Obj()`
+取到强类型请求；其余条目在 `OddView.Priv/Name` 里可见。
+安卓 12.9.1（228）与官方 228 的 schema 逐条相同，差异只在私有类。
+
 ## 运行时不变量
 
 - 未知层拒绝，不 clamp、不回退 canonical 字节。

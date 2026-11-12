@@ -56,6 +56,7 @@ type Uni struct {
 	CanIdx *layIdx
 	Layers []*LayerSpec
 	Dec    *Decide
+	Priv   *PrivTab
 }
 
 // defKey is qualified definition name.
@@ -98,12 +99,16 @@ Classes:
 }
 
 // LoadUni reads meta.json and all schemas.
-func LoadUni(metaPath, decidePath string) (*Uni, error) {
+func LoadUni(metaPath, decidePath, privPath string) (*Uni, error) {
 	dec, err := LoadDecide(decidePath)
 	if err != nil {
 		return nil, err
 	}
 	if err := dec.unknown(); err != nil {
+		return nil, err
+	}
+	priv, err := LoadPriv(privPath)
+	if err != nil {
 		return nil, err
 	}
 	data, err := os.ReadFile(metaPath)
@@ -135,6 +140,7 @@ func LoadUni(metaPath, decidePath string) (*Uni, error) {
 		CanSch: canSch,
 		CanIdx: newIdx(canSch),
 		Dec:    dec,
+		Priv:   priv,
 	}
 	sort.Slice(idx.Layers, func(i, j int) bool { return idx.Layers[i].N < idx.Layers[j].N })
 	for _, m := range idx.Layers {
@@ -206,6 +212,39 @@ func (u *Uni) LayerOf(n Layer) *LayerSpec {
 
 // CanonKeys returns sorted canonical definition keys.
 func (u *Uni) CanonKeys() []string { return u.CanIdx.keys }
+
+// CanonDef returns canonical definition.
+func (u *Uni) CanonDef(key string) (*tl.Definition, bool) {
+	d, ok := u.CanIdx.Get(key)
+	if !ok {
+		return nil, false
+	}
+	out := d.Def
+	return &out, true
+}
+
+// LayerDef returns layer definition.
+func (u *Uni) LayerDef(n Layer, key string) (*tl.Definition, bool) {
+	spec := u.LayerOf(n)
+	if spec == nil {
+		return nil, false
+	}
+	d, ok := spec.Idx.Get(key)
+	if !ok {
+		return nil, false
+	}
+	out := d.Def
+	return &out, true
+}
+
+// LayerKeys returns sorted layer keys.
+func (u *Uni) LayerKeys(n Layer) []string {
+	spec := u.LayerOf(n)
+	if spec == nil {
+		return nil
+	}
+	return spec.Idx.keys
+}
 
 func (u *Uni) String() string {
 	return fmt.Sprintf("canon=%d layers=%d defs=%d", u.Canon, len(u.Layers), len(u.CanIdx.keys))
