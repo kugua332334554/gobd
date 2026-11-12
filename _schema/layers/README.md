@@ -90,11 +90,16 @@ ctor id 无重复、`Sym` 无碰撞；生成结果写入 `audit.json`。
 go run ./cmd/layandroid `
   -java D:\Telegram-12.9.1-layer228\TMessagesProj\src\main\java\org\telegram\tgnet `
   -src  D:\Telegram-12.9.1-layer228\TMessagesProj_AppTests\tlscheme `
-  -tl _schema/layers/priv.tl
+  -tl _schema/layers/priv.tl -go layerx/priv_gen.go
 ```
 
-内容：10 个客户端私有请求 + 1 个私有响应类型（`messages.webViewResult`）。
-`layerx/priv.go` 的手写类型与它逐字段一致，`TestPrivTL` 校验 id 集合不漂移。
+内容：32 个定义。
+
+- 11 个客户端独有（`layerx/priv.go` 手写）
+- 21 个旧 id / 私有 RPC（客户端保留的旧构造器，形状与官方不同，
+  由 `-go` 生成 `layerx/priv_gen.go`）
+
+`TestPrivTL` 校验 id 集合与形状不漂移；`TestPrivGenerated` 跑往返。
 私有 id 是客户端常量，不随层变化，所以 228–233 全部可用。
 
 ## 运行时不变量

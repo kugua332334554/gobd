@@ -92,6 +92,37 @@ func TestPrivRequests(t *testing.T) {
 	}
 }
 
+func TestPrivGenerated(t *testing.T) {
+	var ok, skipped int
+	for id := range privByID {
+		s, _ := PrivSym(id)
+		if !IsPriv(s) {
+			continue
+		}
+		v := newPriv(s)
+		if v == nil {
+			continue
+		}
+		var b bin.Buffer
+		if !tryPut(&b, L228, v) {
+			skipped++
+			continue
+		}
+		got, err := Get(&b, L228)
+		if err != nil {
+			t.Fatalf("%s: get: %v", SymName(s), err)
+		}
+		if len(b.Buf) != 0 {
+			t.Fatalf("%s: %d bytes left", SymName(s), len(b.Buf))
+		}
+		if got == nil {
+			t.Fatalf("%s: nil", SymName(s))
+		}
+		ok++
+	}
+	t.Logf("ok=%d skipped=%d", ok, skipped)
+}
+
 func TestPrivSkipView(t *testing.T) {
 	tbl := NewTable()
 	var got OddView

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/bits"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gotd/td/gen"
+	"github.com/gotd/tl"
 )
 
 // jField is one Java field.
@@ -31,7 +33,7 @@ type jClass struct {
 }
 
 var (
-	classRe = regexp.MustCompile(`public\s+(?:static\s+)?(?:abstract\s+)?class\s+([A-Za-z0-9_\.]+)\s*(?:extends\s+([A-Za-z0-9_\.]+))?\s*\{`)
+	classRe = regexp.MustCompile(`public\s+(?:static\s+)?(?:abstract\s+)?class\s+([A-Za-z0-9_\.]+)\s*(?:extends\s+([A-Za-z0-9_\.<>]+))?\s*\{`)
 	idRe    = regexp.MustCompile(`constructor\s*=\s*0x([0-9a-fA-F]+)`)
 	fieldRe = regexp.MustCompile(`public\s+(static\s+)?([A-Za-z0-9_\.\[\]<>, ]+?)\s+([a-z][A-Za-z0-9_]*)\s*(?:=[^;]*)?;`)
 	respRe  = regexp.MustCompile(`return\s+([A-Za-z0-9_\.]+)\.TLdeserialize`)
@@ -66,6 +68,9 @@ func splitJava(src string) []*jClass {
 		ext := ""
 		if m[4] >= 0 {
 			ext = src[m[4]:m[5]]
+			if i := strings.IndexByte(ext, '<'); i >= 0 {
+				ext = ext[:i]
+			}
 		}
 		body, _ := braceFrom(src, m[1]-1)
 		c := &jClass{
@@ -128,8 +133,8 @@ var (
 	writeRe = regexp.MustCompile(`stream\.write(Int32|Int64|String|ByteArray|Double|Bool)\(([A-Za-z0-9_\.]+)\)`)
 	objRe   = regexp.MustCompile(`([A-Za-z0-9_]+)\.serializeToStream\(stream\)`)
 	vecRe   = regexp.MustCompile(`Vector\.serialize(Long|Int|String)?\(stream,\s*([A-Za-z0-9_]+)\)`)
-	setFlag = regexp.MustCompile(`(flags2?)\s*=\s*setFlag\((flags2?),\s*FLAG_(\d+),\s*([^;]+)\)`)
-	hasFlag = regexp.MustCompile(`hasFlag\((flags2?),\s*FLAG_(\d+)\)`)
+	setFlag = regexp.MustCompile(`(flags2?)\s*=\s*setFlag\((flags2?),\s*(?:FLAG_(\d+)|(\d+)),\s*([^;]+)\)`)
+	hasFlag = regexp.MustCompile(`hasFlag\((flags2?),\s*(?:FLAG_(\d+)|(\d+))\)`)
 	javaVec = regexp.MustCompile(`^ArrayList<(.+)>$`)
 	identRe = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)`)
 )
@@ -222,9 +227,8 @@ func (p *javaParser) buildParams(c *jClass) ([]param, error) {
 	}
 	var ops []flagOp
 	for _, m := range setFlag.FindAllStringSubmatch(body, -1) {
-		var bit int
-		fmt.Sscanf(m[3], "%d", &bit)
-		expr := strings.TrimSpace(m[4])
+		bit := flagBit(m[3], m[4])
+		expr := strings.TrimSpace(m[5])
 		name := identRe.FindString(expr)
 		if name == "" {
 			continue
@@ -244,9 +248,7 @@ func (p *javaParser) buildParams(c *jClass) ([]param, error) {
 		}
 		if strings.HasPrefix(line, "if (") || strings.HasPrefix(line, "if(") {
 			if m := hasFlag.FindStringSubmatch(line); m != nil {
-				var bit int
-				fmt.Sscanf(m[2], "%d", &bit)
-				cond = append(cond, bit)
+				cond = append(cond, flagBit(m[2], m[3]))
 			} else {
 				cond = append(cond, -1)
 			}
@@ -289,11 +291,8 @@ func (p *javaParser) buildParams(c *jClass) ([]param, error) {
 			case "Bool":
 				t = "Bool"
 			}
-			if jt := fieldJava(c, arg); jt == "boolean" {
-				if m[1] == "Int32" {
-					continue
-				}
-				t = "true"
+			if m[1] == "Int32" && fieldJava(c, arg) == "boolean" {
+				continue
 			}
 			pp := param{Name: arg, Type: t, Index: -1}
 			if cur >= 0 {
@@ -418,15 +417,21 @@ func tlLine(name string, id uint32, params []param, result string) string {
 	return b.String()
 }
 
+// fallbackDefs covers ids only present in C++ or other client builds.
+var fallbackDefs = map[uint32]string{
+	0x637ea878: "account.registerDevice#637ea878 token_type:int token:string = Bool;",
+	0x11f812d8: "contacts.search#11f812d8 q:string limit:int = contacts.Found;",
+}
+
 // extractTL pulls private definitions from Java sources.
-func extractTL(u *gen.Uni, javaDir, srcDir, privPath, out string) error {
+func extractTL(u *gen.Uni, javaDir, srcDir, privPath, out, goOut string) error {
 	p, err := gen.LoadPriv(privPath)
 	if err != nil {
 		return err
 	}
 	ids := map[uint32]bool{}
 	for _, it := range p.Items {
-		if it.Go == "" && it.ID != "aadf159b" {
+		if it.Go == "" && it.Sym == "" {
 			continue
 		}
 		v, err := strconv.ParseUint(it.ID, 16, 32)
@@ -444,20 +449,22 @@ func extractTL(u *gen.Uni, javaDir, srcDir, privPath, out string) error {
 		if err != nil {
 			return nil
 		}
-		classes = append(classes, splitJava(string(data))...)
+		list := splitJava(string(data))
+		if ns, ok := fileNamespace(filepath.Base(path)); ok {
+			for _, c := range list {
+				if !strings.HasPrefix(c.Name, "TL_") && !strings.Contains(c.Name, ".") {
+					c.Name = ns + "." + c.Name
+				}
+			}
+		}
+		classes = append(classes, list...)
 		return nil
 	})
 	if err != nil {
 		return err
 	}
 	parser := &javaParser{norm: map[string]string{}, byID: map[string]*jClass{}}
-	put := func(name string) {
-		key := normName(name)
-		if old, ok := parser.norm[key]; ok && strings.Contains(old, ".") && !strings.Contains(name, ".") {
-			return
-		}
-		parser.norm[key] = name
-	}
+	put := func(name string) { putAs(parser, name, name) }
 	for _, c := range classes {
 		put(strings.TrimPrefix(c.Name, "TL_"))
 		parser.norm[normName(strings.TrimPrefix(c.Name, "TL_"))] = javaName(c.Name)
@@ -478,7 +485,11 @@ func extractTL(u *gen.Uni, javaDir, srcDir, privPath, out string) error {
 	for _, key := range u.CanonKeys() {
 		put(key)
 		if d, ok := u.CanonDef(key); ok {
-			put(d.Type.String())
+			t := d.Type.String()
+			putAs(parser, t, t)
+			if i := strings.LastIndex(t, "."); i >= 0 {
+				putAs(parser, t[i+1:], t)
+			}
 		}
 	}
 	seen := map[uint32]bool{}
@@ -493,18 +504,81 @@ func extractTL(u *gen.Uni, javaDir, srcDir, privPath, out string) error {
 			parser.norm[normName(strings.TrimPrefix(c.Name, "TL_"))] = typeOf(c.Name)
 		}
 	}
-	doc, err := parser.emitTL(sel)
+	var extra []string
+	for id := range ids {
+		if seen[id] {
+			continue
+		}
+		if line, ok := fallbackDefs[id]; ok {
+			extra = append(extra, line)
+		}
+	}
+	doc, err := parser.emitTL(sel, extra)
 	if err != nil {
 		return err
-	}
-	if os.Getenv("LAYDEBUG") != "" {
-		fmt.Printf("debug statsurl=%q\n", parser.norm["statsurl"])
 	}
 	if err := os.WriteFile(out, []byte(doc), 0600); err != nil {
 		return err
 	}
-	fmt.Printf("wrote %s: %d defs\n", out, len(sel))
+	fmt.Printf("wrote %s: %d defs\n", out, len(sel)+len(extra))
+	if goOut == "" {
+		return nil
+	}
+	parsed, err := tl.Parse(strings.NewReader(doc))
+	if err != nil {
+		return err
+	}
+	defs := map[uint32]tl.Definition{}
+	for _, d := range parsed.Definitions {
+		defs[d.Definition.ID] = d.Definition
+	}
+	gen2 := &goGen{u: u}
+	src, err := gen2.emit(defs, u.Priv.GenItems())
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(goOut, []byte(src), 0600); err != nil {
+		return err
+	}
+	fmt.Printf("wrote %s: %d types\n", goOut, len(u.Priv.GenItems()))
 	return nil
+}
+
+// putAs stores a mapping, preferring namespaced values.
+func putAs(p *javaParser, name, val string) {
+	key := normName(name)
+	if old, ok := p.norm[key]; ok && strings.Contains(old, ".") && !strings.Contains(val, ".") {
+		return
+	}
+	p.norm[key] = val
+}
+
+// fileNamespace infers namespace from TL_<ns>.java.
+func fileNamespace(base string) (string, bool) {
+	name := strings.TrimSuffix(base, ".java")
+	if !strings.HasPrefix(name, "TL_") || name == "TLRPC" {
+		return "", false
+	}
+	ns := strings.TrimPrefix(name, "TL_")
+	if strings.Contains(ns, "_") || ns == "" {
+		return "", false
+	}
+	return ns, true
+}
+
+// flagBit converts FLAG_N or mask to bit index.
+func flagBit(named, mask string) int {
+	if named != "" {
+		var n int
+		fmt.Sscanf(named, "%d", &n)
+		return n
+	}
+	var m int
+	fmt.Sscanf(mask, "%d", &m)
+	if m <= 0 {
+		return -1
+	}
+	return bits.TrailingZeros(uint(m))
 }
 
 // typeOf derives the result type.
@@ -517,8 +591,9 @@ func typeOf(class string) string {
 }
 
 // emitTL builds a TL document.
-func (p *javaParser) emitTL(classes []*jClass) (string, error) {
+func (p *javaParser) emitTL(classes []*jClass, extra []string) (string, error) {
 	var types, funcs []string
+	funcs = append(funcs, extra...)
 	for _, c := range classes {
 		params, err := p.buildParams(c)
 		if err != nil {

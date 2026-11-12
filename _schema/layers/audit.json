@@ -1,10 +1,10 @@
 {
   "canon": 233,
   "units": 338,
-  "bytes": 2976721,
-  "lines": 133027,
-  "priv": 57,
-  "privDecodable": 11,
+  "bytes": 2987844,
+  "lines": 133404,
+  "priv": 77,
+  "privDecodable": 32,
   "layers": [
     {
       "n": 228,
