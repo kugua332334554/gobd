@@ -57,6 +57,14 @@ func TestPrivRequests(t *testing.T) {
 		}},
 		{sym: SymPrivImportCard, obj: &PrivImportCard{ExportCard: []int{1, 2, 3}}},
 		{sym: SymPrivDeleteFolder, obj: &PrivDeleteFolder{FolderID: 4}},
+		{sym: SymPrivWebViewResult, obj: &PrivWebViewResult{
+			Result: &tg.BotInlineResult{
+				ID:          "1",
+				Type:        "t",
+				SendMessage: &tg.BotInlineMessageText{Message: "x"},
+			},
+			Users: []tg.UserClass{&tg.UserEmpty{ID: 2}},
+		}},
 	}
 	for _, c := range cases {
 		tbl := NewTable()

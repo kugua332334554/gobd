@@ -5255,6 +5255,7 @@ var symNames = map[Sym]string{
 	SymPrivRequestRecurringPayment:                     "payments.requestRecurringPayment",
 	SymPrivSendWebViewResultMessage:                    "messages.sendWebViewResultMessage",
 	SymPrivSetWebViewResult:                            "messages.setWebViewResult",
+	SymPrivWebViewResult:                               "messages.webViewResult",
 }
 
 // SymName returns TL name.

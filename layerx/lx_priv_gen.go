@@ -18,6 +18,7 @@ const (
 	SymPrivRequestRecurringPayment  Sym = 0xfffffff8
 	SymPrivSendWebViewResultMessage Sym = 0xfffffff7
 	SymPrivSetWebViewResult         Sym = 0xfffffff6
+	SymPrivWebViewResult            Sym = 0xfffffff5
 )
 
 // privByID maps client ids.
@@ -32,6 +33,7 @@ var privByID = map[uint32]Sym{
 	0x146e958d: SymPrivRequestRecurringPayment,
 	0xddcf50eb: SymPrivSendWebViewResultMessage,
 	0xe41cd11d: SymPrivSetWebViewResult,
+	0xaadf159b: SymPrivWebViewResult,
 }
 
 // privName maps sym to TL name.
@@ -46,12 +48,12 @@ var privName = map[Sym]string{
 	SymPrivRequestRecurringPayment:  "payments.requestRecurringPayment",
 	SymPrivSendWebViewResultMessage: "messages.sendWebViewResultMessage",
 	SymPrivSetWebViewResult:         "messages.setWebViewResult",
+	SymPrivWebViewResult:            "messages.webViewResult",
 }
 
 // privSkip lists known unsupported ids.
 var privSkip = map[uint32]string{
 	0xcacacaca: "messages.sendEncryptedMultiMedia",
-	0xaadf159b: "messages.webViewResult",
 	0x555555f6: "audioEncrypted",
 	0xfe69018d: "channelAdminLogEventActionChangeTheme",
 	0x680b773c: "channelFull_layer176",
@@ -111,6 +113,7 @@ var privID = map[Sym]uint32{
 	SymPrivRequestRecurringPayment:  0x146e958d,
 	SymPrivSendWebViewResultMessage: 0xddcf50eb,
 	SymPrivSetWebViewResult:         0xe41cd11d,
+	SymPrivWebViewResult:            0xaadf159b,
 }
 
 // PrivSym resolves client id.
@@ -207,6 +210,13 @@ func putPriv(b *bin.Buffer, l Layer, s Sym, v bin.Object) error {
 		}
 		b.PutID(privID[s])
 		return x.encodePriv(b, l)
+	case SymPrivWebViewResult:
+		x, ok := v.(*PrivWebViewResult)
+		if !ok {
+			return ErrMismatch
+		}
+		b.PutID(privID[s])
+		return x.encodePriv(b, l)
 	}
 	return ErrNoPlan
 }
@@ -270,6 +280,12 @@ func getPriv(b *bin.Buffer, l Layer, s Sym) (bin.Object, error) {
 		return v, nil
 	case SymPrivSetWebViewResult:
 		v := new(PrivSetWebViewResult)
+		if err := v.decodePriv(b, l); err != nil {
+			return nil, err
+		}
+		return v, nil
+	case SymPrivWebViewResult:
+		v := new(PrivWebViewResult)
 		if err := v.decodePriv(b, l); err != nil {
 			return nil, err
 		}

@@ -15,7 +15,7 @@
     { "id": "1c295881", "name": "folders.deleteFolder", "go": "PrivDeleteFolder" },
 
     { "id": "cacacaca", "name": "messages.sendEncryptedMultiMedia", "skip": "e2e" },
-    { "id": "aadf159b", "name": "messages.webViewResult", "skip": "legacy" },
+    { "id": "aadf159b", "name": "messages.webViewResult", "go": "PrivWebViewResult" },
     { "id": "555555f6", "name": "audioEncrypted", "skip": "legacy" },
     { "id": "fe69018d", "name": "channelAdminLogEventActionChangeTheme", "skip": "legacy" },
     { "id": "680b773c", "name": "channelFull_layer176", "skip": "legacy" },

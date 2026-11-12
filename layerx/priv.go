@@ -5,6 +5,75 @@ import (
 	"github.com/gotd/td/tg"
 )
 
+// privWebViewResultID is messages.webViewResult.
+const privWebViewResultID uint32 = 0xaadf159b
+
+// PrivWebViewResult is messages.webViewResult.
+type PrivWebViewResult struct {
+	Result tg.BotInlineResultClass
+	Users  []tg.UserClass
+}
+
+// TypeID returns client id.
+func (*PrivWebViewResult) TypeID() uint32 { return privWebViewResultID }
+
+// TypeName returns TL name.
+func (*PrivWebViewResult) TypeName() string { return "messages.webViewResult" }
+
+// Encode implements bin.Encoder.
+func (p *PrivWebViewResult) Encode(b *bin.Buffer) error {
+	b.PutID(privWebViewResultID)
+	return p.encodePriv(b, Canon)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (p *PrivWebViewResult) EncodeBare(b *bin.Buffer) error { return p.encodePriv(b, Canon) }
+
+// Decode implements bin.Decoder.
+func (p *PrivWebViewResult) Decode(b *bin.Buffer) error {
+	if err := b.ConsumeID(privWebViewResultID); err != nil {
+		return err
+	}
+	return p.decodePriv(b, Canon)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (p *PrivWebViewResult) DecodeBare(b *bin.Buffer) error { return p.decodePriv(b, Canon) }
+
+func (p *PrivWebViewResult) encodePriv(b *bin.Buffer, l Layer) error {
+	if err := putObj(b, l, p.Result); err != nil {
+		return err
+	}
+	b.PutVectorHeader(len(p.Users))
+	for _, v := range p.Users {
+		if err := putObj(b, l, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *PrivWebViewResult) decodePriv(b *bin.Buffer, l Layer) error {
+	r, err := getObj(b, l)
+	if err != nil {
+		return err
+	}
+	p.Result = r.(tg.BotInlineResultClass)
+	n, err := b.VectorHeader()
+	if err != nil {
+		return err
+	}
+	p.Users = p.Users[:0]
+	for i := 0; i < n; i++ {
+		u, err := getObj(b, l)
+		if err != nil {
+			return err
+		}
+		p.Users = append(p.Users, u.(tg.UserClass))
+	}
+	return nil
+}
+
 // Client ids of DrKLO private requests.
 const (
 	privGetStatsURLID              uint32 = 0x812c2ae6
