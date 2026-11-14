@@ -47,6 +47,10 @@ func putObj(b *bin.Buffer, l Layer, v bin.Object) error {
 	if !SymValid(s) {
 		return fmt.Errorf("%w: id %08x", ErrNoPlan, uint32(t.TypeID()))
 	}
+	// bridge types without a generated plan, e.g. replyInlineMarkup.
+	if s == SymReplyInlineMarkup && !customAt(l, s) {
+		return putMarkupBridge(b, l, v)
+	}
 	return putAt(b, l, s, v)
 }
 
@@ -62,7 +66,22 @@ func getObj(b *bin.Buffer, l Layer) (bin.Object, error) {
 			return nil, fmt.Errorf("%w: id %08x layer %d", ErrNoPlan, id, l)
 		}
 	}
-	return getAt(b, l, s)
+	// bridge types without a generated plan, e.g. replyInlineMarkup.
+	if s == SymReplyInlineMarkup && !customAt(l, s) {
+		return getMarkupBridge(b, l)
+	}
+	v, err := getAt(b, l, s)
+	if err != nil {
+		return nil, err
+	}
+	// Generated per-layer decoders keep the raw flag word local (bit meanings
+	// differ between layers), so the canonical Flags bitmap would stay empty
+	// and every Get*/Flags.Has accessor would lie. Rebuild it from the decoded
+	// field values.
+	if f, ok := v.(interface{ SetFlags() }); ok {
+		f.SetFlags()
+	}
+	return v, nil
 }
 
 // Put encodes v for layer.

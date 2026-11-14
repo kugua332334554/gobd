@@ -68,13 +68,27 @@ func scanObj(b *bin.Buffer, l Layer, st *scanState) error {
 	}
 	s, ok := SymOf(l, id)
 	if !ok {
-		return fmt.Errorf("%w: id %08x", ErrNoPlan, id)
+		// Private alias ids have no scan table; consume them with the real
+		// decoder so preflight stays accurate for DrKLO-only ctors.
+		ps, pok := PrivSym(id)
+		if !pok {
+			return fmt.Errorf("%w: id %08x", ErrNoPlan, id)
+		}
+		_, err := getAt(b, l, ps)
+		return err
 	}
 	return scanSym(b, l, st, s)
 }
 
 // scanSym scans one body.
 func scanSym(b *bin.Buffer, l Layer, st *scanState, s Sym) error {
+	// bridge types have no generated scan table; decode to consume them.
+	if s == SymReplyInlineMarkup {
+		st.depth++
+		defer func() { st.depth-- }()
+		_, err := getMarkupBridge(b, l)
+		return err
+	}
 	fields := scanFor(l, s)
 	if fields == nil {
 		return fmt.Errorf("%w: %s", ErrNoPlan, SymName(s))
