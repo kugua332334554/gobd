@@ -1,6 +1,6 @@
 module github.com/gotd/td
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/awnumar/memguard v0.23.0
@@ -10,7 +10,7 @@ require (
 	github.com/go-faster/errors v0.8.0
 	github.com/go-faster/jx v1.2.0
 	github.com/go-faster/xor v1.0.0
-	github.com/go-openapi/inflect v1.0.0
+	github.com/go-openapi/inflect v1.0.1
 	github.com/google/uuid v1.6.0
 	github.com/gotd/getdoc v0.53.0
 	github.com/gotd/ige v0.3.0
