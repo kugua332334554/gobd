@@ -46,7 +46,7 @@ gh repo clone TelegramMessenger/MTProxy
 
 ## Commands
 
-Go 1.25 (`go.mod`). CI runs against `oldstable` and `stable`.
+Go 1.26 (`go.mod`). CI runs against `oldstable` and `stable`.
 
 ```console
 make test          # go test --timeout 5m -race ./...   (see go.test.sh)
