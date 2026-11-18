@@ -156,6 +156,13 @@ func (t *Table) admit(l Layer, body *bin.Buffer, o Opts, check bool) (*Taken, er
 	if err != nil {
 		return nil, err
 	}
+	// Per-layer decoders keep the raw flag word local (bit meanings differ
+	// between layers), so the canonical Flags bitmap would stay zero and every
+	// Flags.Has/Get* accessor in a handler would lie. Rebuild it from the
+	// decoded field values, exactly like getObj does for nested objects.
+	if f, ok := v.(interface{ SetFlags() }); ok {
+		f.SetFlags()
+	}
 	a := &Taken{
 		m:     &Mark{layer: eff, sym: s, ctor: id, fixed: fixed, obj: v},
 		wraps: wraps,
