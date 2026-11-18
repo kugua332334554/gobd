@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/awnumar/memguard v0.23.0
-	github.com/beevik/ntp v1.5.0
+	github.com/beevik/ntp v1.6.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/coder/websocket v1.8.15
 	github.com/go-faster/errors v0.8.0
