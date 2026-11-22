@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gotd/td/bin"
+	"github.com/gotd/td/tg"
 )
 
 // Layer is TL layer number.
@@ -51,6 +52,42 @@ func putObj(b *bin.Buffer, l Layer, v bin.Object) error {
 	if s == SymReplyInlineMarkup && !customAt(l, s) {
 		return putMarkupBridge(b, l, v)
 	}
+	// L228 reply keyboards: the button ctor changed shape in newer layers
+	// (type:ButtonType), so the generated encoder cannot downgrade it.
+	if s == SymReplyKeyboardMarkup && l == L228 {
+		return putKeyboardMarkup228(b, v)
+	}
+	// Containers carrying update trees: members that are absent from the
+	// target layer are dropped (or rejected) instead of failing the whole push.
+	if s == SymUpdates || s == SymUpdatesCombined || s == SymUpdateShort {
+		return putUpdatesProjected(b, l, s, v)
+	}
+	// Media and layout shapes introduced after a layer cannot be represented
+	// there; substitute the documented fallback.
+	if s == SymMessageMediaWidget && l < L233 {
+		return putMessageMediaUnsupported(b, l)
+	}
+	if s == SymChannelsToggleForum && l < L233 {
+		return putToggleForumProjected(b, l, v)
+	}
+	// Text payloads typed as TextWithEntities in canonical form are plain
+	// strings in the earliest layers.
+	if l <= L229 {
+		switch s {
+		case SymBotVerification:
+			if x, ok := v.(*tg.BotVerification); ok {
+				return putBotVerification229(b, l, x)
+			}
+		case SymBotVerifierSettings:
+			if x, ok := v.(*tg.BotVerifierSettings); ok {
+				return putBotVerifierSettings229(b, l, x)
+			}
+		case SymBotsSetCustomVerification:
+			if x, ok := v.(*tg.BotsSetCustomVerificationRequest); ok {
+				return putBotsSetCustomVerification229(b, l, x)
+			}
+		}
+	}
 	return putAt(b, l, s, v)
 }
 
@@ -69,6 +106,19 @@ func getObj(b *bin.Buffer, l Layer) (bin.Object, error) {
 	// bridge types without a generated plan, e.g. replyInlineMarkup.
 	if s == SymReplyInlineMarkup && !customAt(l, s) {
 		return getMarkupBridge(b, l)
+	}
+	if s == SymReplyKeyboardMarkup && l == L228 {
+		return getKeyboardMarkup228(b)
+	}
+	if l <= L229 {
+		switch s {
+		case SymBotVerification:
+			return getBotVerification229(b)
+		case SymBotVerifierSettings:
+			return getBotVerifierSettings229(b)
+		case SymBotsSetCustomVerification:
+			return getBotsSetCustomVerification229(b, l)
+		}
 	}
 	v, err := getAt(b, l, s)
 	if err != nil {

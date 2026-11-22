@@ -38,6 +38,328 @@ const (
 // styleBit is the flags bit of the optional style field.
 const styleBit = 10
 
+// putKeyboardMarkup228 encodes replyKeyboardMarkup for L228. Its button ctor
+// is keyboardButton#7d170cff (text + optional style, no type field); typed
+// buttons have their own legacy ctors. Bot reply keyboards ride on dialog top
+// messages, so a failure here discards the whole messages.getDialogs response.
+func putKeyboardMarkup228(b *bin.Buffer, v bin.Object) error {
+	m, ok := v.(*tg.ReplyKeyboardMarkup)
+	if !ok {
+		return fmt.Errorf("%w: %T as replyKeyboardMarkup", ErrMismatch, v)
+	}
+	if m == nil {
+		return ErrNil
+	}
+	var flags bin.Fields
+	if m.Resize {
+		flags.Set(0)
+	}
+	if m.SingleUse {
+		flags.Set(1)
+	}
+	if m.Selective {
+		flags.Set(2)
+	}
+	if m.Persistent {
+		flags.Set(4)
+	}
+	if m.Placeholder != "" {
+		flags.Set(3)
+	}
+	if err := putWithID(b, L228, SymReplyKeyboardMarkup); err != nil {
+		return err
+	}
+	if err := flags.Encode(b); err != nil {
+		return fmt.Errorf("encode flags: %w", err)
+	}
+	b.PutVectorHeader(len(m.Rows))
+	for i := range m.Rows {
+		if err := putWithID(b, L228, SymKeyboardButtonRow); err != nil {
+			return err
+		}
+		row := &m.Rows[i]
+		b.PutVectorHeader(len(row.Buttons))
+		for j := range row.Buttons {
+			if err := putKeyboardButton228(b, &row.Buttons[j]); err != nil {
+				return fmt.Errorf("encode replyKeyboardMarkup row %d button %d: %w", i, j, err)
+			}
+		}
+	}
+	if flags.Has(3) {
+		b.PutString(m.Placeholder)
+	}
+	return nil
+}
+
+// putKeyboardButton228 encodes one legacy reply keyboard button. The legacy
+// ctor family is keyboardButton{Url,Callback,...}, which all share the
+// flags/style/text layout but differ in their tail fields.
+func putKeyboardButton228(b *bin.Buffer, btn *tg.KeyboardButton) error {
+	if btn == nil {
+		return ErrNil
+	}
+	var (
+		ctor    uint32
+		pre     func(*bin.Buffer) error
+		post    func(*bin.Buffer) error
+		hasQuiz bool
+	)
+	styled := btn.Flags.Has(styleBit) || !btn.Style.Zero()
+	switch t := btn.Type.(type) {
+	case nil, *tg.ButtonTypeDefault:
+		ctor = ctor228KeyboardButton
+	case *tg.ButtonTypeRequestPhone:
+		ctor = ctor228KeyboardButtonRequestPhone
+	case *tg.ButtonTypeRequestGeoLocation:
+		ctor = ctor228KeyboardButtonRequestGeo
+	case *tg.ButtonTypeRequestPoll:
+		ctor = ctor228KeyboardButtonRequestPoll
+		hasQuiz = t.Flags.Has(0) || t.Quiz
+		quiz := t.Quiz
+		if hasQuiz {
+			// quiz precedes text in this ctor.
+			pre = func(b *bin.Buffer) error {
+				b.PutBool(quiz)
+				return nil
+			}
+		}
+	case *tg.ButtonTypeRequestPeer:
+		ctor = ctor228KeyboardButtonRequestPeer
+		post = func(b *bin.Buffer) error {
+			b.PutInt(t.ButtonID)
+			if err := putObj(b, L228, t.PeerType); err != nil {
+				return err
+			}
+			b.PutInt(t.MaxQuantity)
+			return nil
+		}
+	case *tg.InputButtonTypeRequestPeer:
+		ctor = ctor228InputKeyboardButtonReqPeer
+		post = func(b *bin.Buffer) error {
+			b.PutInt(t.ButtonID)
+			if err := putObj(b, L228, t.PeerType); err != nil {
+				return err
+			}
+			b.PutInt(t.MaxQuantity)
+			return nil
+		}
+	case *tg.ButtonTypeSimpleWebView:
+		ctor = ctor228KeyboardButtonSimpleWebView
+		post = func(b *bin.Buffer) error {
+			b.PutString(t.URL)
+			return nil
+		}
+	default:
+		return fmt.Errorf("%w: button type %T in layer %d", ErrNoPlan, btn.Type, L228)
+	}
+	var flags bin.Fields
+	if styled {
+		flags.Set(styleBit)
+	}
+	if hasQuiz {
+		flags.Set(0)
+	}
+	if peer, ok := btn.Type.(*tg.InputButtonTypeRequestPeer); ok {
+		if peer.NameRequested {
+			flags.Set(0)
+		}
+		if peer.UsernameRequested {
+			flags.Set(1)
+		}
+		if peer.PhotoRequested {
+			flags.Set(2)
+		}
+	}
+	b.PutID(ctor)
+	if err := flags.Encode(b); err != nil {
+		return fmt.Errorf("encode button flags: %w", err)
+	}
+	if styled {
+		if err := btn.Style.Encode(b); err != nil {
+			return fmt.Errorf("encode button style: %w", err)
+		}
+	}
+	if pre != nil {
+		if err := pre(b); err != nil {
+			return err
+		}
+	}
+	b.PutString(btn.Text)
+	if post != nil {
+		if err := post(b); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// getKeyboardMarkup228 decodes the legacy reply keyboard layout. The ctor ids
+// are already consumed by getObj, so this starts at the flags word.
+func getKeyboardMarkup228(b *bin.Buffer) (bin.Object, error) {
+	flags, err := b.Uint32()
+	if err != nil {
+		return nil, fmt.Errorf("decode replyKeyboardMarkup flags: %w", err)
+	}
+	m := &tg.ReplyKeyboardMarkup{
+		Resize:     flags&(1<<0) != 0,
+		SingleUse:  flags&(1<<1) != 0,
+		Selective:  flags&(1<<2) != 0,
+		Persistent: flags&(1<<4) != 0,
+	}
+	n, err := b.VectorHeader()
+	if err != nil {
+		return nil, fmt.Errorf("decode replyKeyboardMarkup rows: %w", err)
+	}
+	if err := vecBound(b, n); err != nil {
+		return nil, err
+	}
+	if n > 0 {
+		m.Rows = make([]tg.KeyboardButtonRow, 0, n%bin.PreallocateLimit)
+	}
+	for i := 0; i < n; i++ {
+		if err := readID(b, ctor228KeyboardButtonRow, "keyboardButtonRow"); err != nil {
+			return nil, err
+		}
+		k, err := b.VectorHeader()
+		if err != nil {
+			return nil, fmt.Errorf("decode keyboardButtonRow buttons: %w", err)
+		}
+		if err := vecBound(b, k); err != nil {
+			return nil, err
+		}
+		row := tg.KeyboardButtonRow{}
+		if k > 0 {
+			row.Buttons = make([]tg.KeyboardButton, 0, k%bin.PreallocateLimit)
+		}
+		for j := 0; j < k; j++ {
+			btn, err := getKeyboardButton228(b)
+			if err != nil {
+				return nil, fmt.Errorf("decode row %d button %d: %w", i, j, err)
+			}
+			row.Buttons = append(row.Buttons, *btn)
+		}
+		m.Rows = append(m.Rows, row)
+	}
+	if flags&(1<<3) != 0 {
+		m.Placeholder, err = b.String()
+		if err != nil {
+			return nil, fmt.Errorf("decode placeholder: %w", err)
+		}
+	}
+	m.SetFlags()
+	return m, nil
+}
+
+// getKeyboardButton228 decodes one legacy reply keyboard button.
+func getKeyboardButton228(b *bin.Buffer) (*tg.KeyboardButton, error) {
+	id, err := b.Uint32()
+	if err != nil {
+		return nil, err
+	}
+	var flags bin.Fields
+	if err := flags.Decode(b); err != nil {
+		return nil, fmt.Errorf("decode button flags: %w", err)
+	}
+	out := &tg.KeyboardButton{Flags: flags}
+	if flags.Has(styleBit) {
+		if err := out.Style.Decode(b); err != nil {
+			return nil, fmt.Errorf("decode button style: %w", err)
+		}
+	}
+	// requestPoll carries quiz before text.
+	quizPresent, quiz := false, false
+	if id == ctor228KeyboardButtonRequestPoll && flags.Has(0) {
+		quizPresent = true
+		if quiz, err = b.Bool(); err != nil {
+			return nil, fmt.Errorf("decode quiz: %w", err)
+		}
+	}
+	if out.Text, err = b.String(); err != nil {
+		return nil, fmt.Errorf("decode button text: %w", err)
+	}
+	switch id {
+	case ctor228KeyboardButton:
+		out.Type = &tg.ButtonTypeDefault{}
+	case ctor228KeyboardButtonRequestPhone:
+		out.Type = &tg.ButtonTypeRequestPhone{}
+	case ctor228KeyboardButtonRequestGeo:
+		out.Type = &tg.ButtonTypeRequestGeoLocation{}
+	case ctor228KeyboardButtonRequestPoll:
+		bt := &tg.ButtonTypeRequestPoll{Quiz: quiz}
+		if quizPresent {
+			bt.Flags.Set(0)
+		}
+		out.Type = bt
+	case ctor228KeyboardButtonRequestPeer:
+		buttonID, err := b.Int()
+		if err != nil {
+			return nil, fmt.Errorf("decode button_id: %w", err)
+		}
+		peer, err := getObj(b, L228)
+		if err != nil {
+			return nil, fmt.Errorf("decode peer_type: %w", err)
+		}
+		peerType, ok := peer.(tg.RequestPeerTypeClass)
+		if !ok {
+			return nil, fmt.Errorf("%w: peer_type %T", ErrMismatch, peer)
+		}
+		maxQuantity, err := b.Int()
+		if err != nil {
+			return nil, fmt.Errorf("decode max_quantity: %w", err)
+		}
+		out.Type = &tg.ButtonTypeRequestPeer{
+			ButtonID:    buttonID,
+			PeerType:    peerType,
+			MaxQuantity: maxQuantity,
+		}
+	case ctor228InputKeyboardButtonReqPeer:
+		buttonID, err := b.Int()
+		if err != nil {
+			return nil, fmt.Errorf("decode button_id: %w", err)
+		}
+		peer, err := getObj(b, L228)
+		if err != nil {
+			return nil, fmt.Errorf("decode peer_type: %w", err)
+		}
+		peerType, ok := peer.(tg.RequestPeerTypeClass)
+		if !ok {
+			return nil, fmt.Errorf("%w: peer_type %T", ErrMismatch, peer)
+		}
+		maxQuantity, err := b.Int()
+		if err != nil {
+			return nil, fmt.Errorf("decode max_quantity: %w", err)
+		}
+		input := &tg.InputButtonTypeRequestPeer{
+			NameRequested:     flags.Has(0),
+			UsernameRequested: flags.Has(1),
+			PhotoRequested:    flags.Has(2),
+			ButtonID:          buttonID,
+			PeerType:          peerType,
+			MaxQuantity:       maxQuantity,
+		}
+		if input.NameRequested {
+			input.Flags.Set(0)
+		}
+		if input.UsernameRequested {
+			input.Flags.Set(1)
+		}
+		if input.PhotoRequested {
+			input.Flags.Set(2)
+		}
+		out.Type = input
+	case ctor228KeyboardButtonSimpleWebView:
+		url, err := b.String()
+		if err != nil {
+			return nil, fmt.Errorf("decode url: %w", err)
+		}
+		out.Type = &tg.ButtonTypeSimpleWebView{URL: url}
+	default:
+		return nil, fmt.Errorf("%w: reply keyboard button id %#x in layer %d", ErrNoPlan, id, L228)
+	}
+	out.SetFlags()
+	return out, nil
+}
+
 // putMarkupBridge encodes replyInlineMarkup for the given layer.
 //
 // L228 uses rows of KeyboardButtonRow, L229+ uses rows of
@@ -176,6 +498,32 @@ func putButton228(b *bin.Buffer, btn *tg.KeyboardInlineButton) error {
 		ctor = ctor228KeyboardButtonUserProfile
 		tail = func(b *bin.Buffer) error {
 			b.PutLong(t.UserID)
+			return nil
+		}
+	case *tg.InputInlineButtonTypeURLAuth:
+		ctor = ctor228InputKeyboardButtonURLAuth
+		if t.RequestWriteAccess {
+			flags.Set(0)
+		}
+		if t.FwdText != "" {
+			flags.Set(1)
+		}
+		tail = func(b *bin.Buffer) error {
+			if t.FwdText != "" {
+				b.PutString(t.FwdText)
+			}
+			b.PutString(t.URL)
+			if err := putObj(b, L228, t.Bot); err != nil {
+				return fmt.Errorf("encode bot: %w", err)
+			}
+			return nil
+		}
+	case *tg.InputInlineButtonTypeUserProfile:
+		ctor = ctor228InputKeyboardButtonUser
+		tail = func(b *bin.Buffer) error {
+			if err := putObj(b, L228, t.UserID); err != nil {
+				return fmt.Errorf("encode user_id: %w", err)
+			}
 			return nil
 		}
 	case *tg.InlineButtonTypeCopy:
@@ -365,21 +713,28 @@ func getButton228(b *bin.Buffer, l Layer) (tg.KeyboardInlineButton, error) {
 		}
 		out.Type = auth
 	case ctor228InputKeyboardButtonURLAuth:
-		// input-only variant, bot and request_write_access are dropped.
-		// request_write_access is ?true, so it carries no bytes.
-		auth := &tg.InlineButtonTypeURLAuth{}
+		auth := &tg.InputInlineButtonTypeURLAuth{RequestWriteAccess: flags.Has(0)}
+		if auth.RequestWriteAccess {
+			auth.Flags.Set(0)
+		}
 		if flags.Has(1) {
 			if auth.FwdText, err = b.String(); err != nil {
 				return out, fmt.Errorf("decode fwd_text: %w", err)
 			}
-			auth.Flags.Set(0)
+			auth.Flags.Set(1)
 		}
 		if auth.URL, err = b.String(); err != nil {
 			return out, fmt.Errorf("decode url: %w", err)
 		}
-		if err := skipObj(b, l); err != nil {
+		bot, err := getObj(b, l)
+		if err != nil {
 			return out, fmt.Errorf("decode bot: %w", err)
 		}
+		inputUser, ok := bot.(tg.InputUserClass)
+		if !ok {
+			return out, fmt.Errorf("%w: bot %T", ErrMismatch, bot)
+		}
+		auth.Bot = inputUser
 		out.Type = auth
 	case ctor228KeyboardButtonUserProfile:
 		uid, err := b.Long()
@@ -388,11 +743,15 @@ func getButton228(b *bin.Buffer, l Layer) (tg.KeyboardInlineButton, error) {
 		}
 		out.Type = &tg.InlineButtonTypeUserProfile{UserID: uid}
 	case ctor228InputKeyboardButtonUser:
-		// InputUser cannot be resolved to a long here, drop the button.
-		if err := skipObj(b, l); err != nil {
+		user, err := getObj(b, l)
+		if err != nil {
 			return out, fmt.Errorf("decode user_id: %w", err)
 		}
-		out.Type = &tg.InlineButtonTypeDisabled{}
+		inputUser, ok := user.(tg.InputUserClass)
+		if !ok {
+			return out, fmt.Errorf("%w: user_id %T", ErrMismatch, user)
+		}
+		out.Type = &tg.InputInlineButtonTypeUserProfile{UserID: inputUser}
 	case ctor228KeyboardButtonWebView:
 		v, err := b.String()
 		if err != nil {

@@ -364,18 +364,31 @@ func TestMarkupBridgeLegacyButtons(t *testing.T) {
 
 // TestMarkupBridgeErrors checks unsupported buttons return wrapped errors.
 func TestMarkupBridgeErrors(t *testing.T) {
-	bad := &tg.ReplyInlineMarkup{
+	// Input-only url-auth buttons have a legacy wire form and survive a
+	// downgrade with their input payload intact.
+	inputAuth := &tg.ReplyInlineMarkup{
 		Rows: []tg.KeyboardInlineButtonRow{
 			{Buttons: []tg.KeyboardInlineButton{{
 				Text: "x",
-				Type: &tg.InputInlineButtonTypeURLAuth{URL: "https://x"},
+				Type: &tg.InputInlineButtonTypeURLAuth{
+					RequestWriteAccess: true,
+					URL:                "https://x",
+					Bot:                &tg.InputUserSelf{},
+				},
 			}}},
 		},
 	}
 	var b bin.Buffer
-	err := Put(&b, L228, bad)
-	if !errors.Is(err, ErrNoPlan) {
-		t.Fatalf("unexpected error: %v", err)
+	if err := Put(&b, L228, inputAuth); err != nil {
+		t.Fatalf("put input url-auth: %v", err)
+	}
+	decoded, err := Get(&bin.Buffer{Buf: append([]byte(nil), b.Buf...)}, L228)
+	if err != nil {
+		t.Fatalf("get input url-auth: %v", err)
+	}
+	got := decoded.(*tg.ReplyInlineMarkup).Rows[0].Buttons[0].Type
+	if auth, ok := got.(*tg.InputInlineButtonTypeURLAuth); !ok || !auth.RequestWriteAccess || auth.URL != "https://x" {
+		t.Fatalf("input url-auth type = %#v", got)
 	}
 
 	nilType := &tg.ReplyInlineMarkup{
@@ -386,5 +399,52 @@ func TestMarkupBridgeErrors(t *testing.T) {
 	b.Reset()
 	if err := Put(&b, L228, nilType); !errors.Is(err, ErrNil) {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// TestKeyboardMarkupBridge228 pins the replyKeyboardMarkup downgrade: the
+// current schema's keyboardButton carries type:ButtonType, which L228 does not
+// have (its ctor is keyboardButton#7d170cff text-only). Without the bridge the
+// generated L228 encoder fails with `absent in layer: field "type"`, and any
+// messages.getDialogs response whose top message includes a bot reply keyboard
+// cannot be encoded at all.
+func TestKeyboardMarkupBridge228(t *testing.T) {
+	m := &tg.ReplyKeyboardMarkup{
+		Resize: true,
+		Rows: []tg.KeyboardButtonRow{
+			{Buttons: []tg.KeyboardButton{{Text: "a"}}},
+		},
+	}
+	var b bin.Buffer
+	if err := Put(&b, L228, m); err != nil {
+		t.Fatalf("put: %v", err)
+	}
+	want := mustHex(t, `
+		d199dd85
+		01000000
+		15c4b51c 01000000
+		838b6077
+		15c4b51c 01000000
+		ff0c177d
+		00000000
+		01610000
+	`)
+	if !bytes.Equal(b.Buf, want) {
+		t.Fatalf("unexpected bytes\n got %x\nwant %x", b.Buf, want)
+	}
+
+	obj, err := Get(&b, L228)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	got, ok := obj.(*tg.ReplyKeyboardMarkup)
+	if !ok {
+		t.Fatalf("got %T, want *tg.ReplyKeyboardMarkup", obj)
+	}
+	if !got.Resize || len(got.Rows) != 1 || len(got.Rows[0].Buttons) != 1 {
+		t.Fatalf("unexpected markup: %+v", got)
+	}
+	if got.Rows[0].Buttons[0].Text != "a" {
+		t.Fatalf("button text = %q, want %q", got.Rows[0].Buttons[0].Text, "a")
 	}
 }
